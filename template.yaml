@@ -11,7 +11,7 @@ Resources:
   s3golang:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Handler: hello
+      Handler: main
       Tracing: Active
       Runtime: go1.x
       CodeUri: .
