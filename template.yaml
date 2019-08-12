@@ -25,3 +25,8 @@ Resources:
               Action:
                 - 's3:Get*'
               Resource: !Sub "arn:aws:s3:::${SourceBucket}*"
+      Environment:
+        Variables:
+          appname: 'go-s3-lambda'
+          awsbucket: 'go-s3-lambda'
+          awsregion: 'eu-west-1'
