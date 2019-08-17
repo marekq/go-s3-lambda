@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	q = "https://sqs.eu-west-1.amazonaws.com/929972393034/wt"
+	q = "https://sqs.eu-west-1.amazonaws.com/123456789012/sqs"
 	r = "eu-west-1"
 	c = 5000
 )
