@@ -15,7 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/epsagon/epsagon-go/epsagon"
 )
 
 func hash_file_crc32(filePath string, polynomial uint32) (string, error) {
@@ -41,8 +40,8 @@ func forloop() {
 
 	downloader := s3manager.NewDownloader(sess)
 
-	i := 1
-	for i <= 10 {
+	i := 0
+	for i < 1 {
 		i = i + 1
 
 		rand.Seed(time.Now().UnixNano())
@@ -81,7 +80,5 @@ func exitErrorf(msg string, args ...interface{}) {
 }
 
 func main() {
-	lambda.Start(epsagon.WrapLambdaHandler(
-		&epsagon.Config{ApplicationName: os.Getenv("appname")},
-		forloop))
+	lambda.Start(forloop)
 }

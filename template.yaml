@@ -8,12 +8,21 @@ Parameters:
     Description: Name of the existing source S3 bucket. An IAM role will be automatically created to limit the scope of the Lambda function. 
     
 Resources:
+  sqs:
+    Type: AWS::SQS::Queue
+
   s3golang:
     Type: 'AWS::Serverless::Function'
     Properties:
       Handler: main
       Tracing: Active
       Runtime: go1.x
+      Events:
+        MySQSEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt sqs.Arn
+            BatchSize: 1
       CodeUri: .
       Description: ''
       MemorySize: 128
