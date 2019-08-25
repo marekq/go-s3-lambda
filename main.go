@@ -1,84 +1,65 @@
 package main
 
 import (
-	"encoding/hex"
+	"context"
+	"errors"
 	"fmt"
 	"hash/crc32"
 	"io"
-	"math/rand"
+	"log"
+	"net/url"
 	"os"
-	"strconv"
-	"time"
 
+	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
-func hash_file_crc32(filePath string, polynomial uint32) (string, error) {
-	var returnCRC32String string
-	file, err := os.Open(filePath)
+const (
+	region = "eu-west-1"
+)
+
+func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
+	if len(sqsEvent.Records) == 0 {
+		return errors.New("No SQS message passed to function")
+	}
+
+	for _, msg := range sqsEvent.Records {
+		fmt.Printf("Got SQS message %q with body %q\n", msg.MessageId, msg.Body)
+		fn := url.QueryEscape(msg.Body)
+		log.Printf("Checking " + msg.Body)
+		msgss3(msg.Body, fn)
+	}
+
+	return nil
+}
+
+func msgss3(s3uri string, fn string) {
+	bucket := os.Getenv("bucket")
+
+	sess, err := session.NewSessionWithOptions(session.Options{
+		Config: aws.Config{Region: aws.String("eu-west-1")},
+	})
+
+	svc := s3.New(sess)
+
+	out, err := svc.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(s3uri),
+	})
+
 	if err != nil {
-		return returnCRC32String, err
+		log.Printf("error\n")
 	}
-	defer file.Close()
-	tablePolynomial := crc32.MakeTable(polynomial)
-	hash := crc32.New(tablePolynomial)
-	if _, err := io.Copy(hash, file); err != nil {
-		return returnCRC32String, err
-	}
-	hashInBytes := hash.Sum(nil)[:]
-	returnCRC32String = hex.EncodeToString(hashInBytes)
-	return returnCRC32String, nil
-}
 
-func forloop() {
-	sess, _ := session.NewSession(&aws.Config{
-		Region: aws.String(os.Getenv("awsregion"))})
+	crc := crc32.NewIEEE()
+	io.Copy(crc, out.Body)
 
-	downloader := s3manager.NewDownloader(sess)
-
-	i := 0
-	for i < 1 {
-		i = i + 1
-
-		rand.Seed(time.Now().UnixNano())
-		bucket := os.Getenv("awsbucket")
-		num := rand.Intn(99) + 1
-		item := "1000/" + strconv.Itoa(num) + ".file"
-		fname := "/tmp/" + strconv.Itoa(num) + ".file"
-
-		file, err := os.Create(fname)
-		if err != nil {
-			exitErrorf("Unable to open file %q, %v", err)
-		}
-		defer file.Close()
-
-		numBytes, err := downloader.Download(file,
-			&s3.GetObjectInput{
-				Bucket: aws.String(bucket),
-				Key:    aws.String(item),
-			})
-		if err != nil {
-			exitErrorf("Unable to download item %q, %v", item, err)
-		}
-
-		hash, err := hash_file_crc32(fname, 0xedb88320)
-		if err == nil {
-			fmt.Println(hash, numBytes, item)
-		}
-
-		os.Remove(fname)
-	}
-}
-
-func exitErrorf(msg string, args ...interface{}) {
-	fmt.Fprintf(os.Stderr, msg+"\n", args...)
-	os.Exit(1)
+	log.Printf("file "+fn+" CRC %d\n", crc.Sum32())
 }
 
 func main() {
-	lambda.Start(forloop)
+	lambda.Start(handler)
 }
