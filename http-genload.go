@@ -5,9 +5,11 @@ import (
 	"math/rand"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
@@ -19,7 +21,7 @@ const (
 	r = "eu-west-1"
 
 	// bucket name
-	b = "<bucket>"
+	buck = "<bucket>"
 
 	// bucket prefix
 	p = "data"
@@ -28,7 +30,7 @@ const (
 	c = 100
 
 	// total amount of go routines
-	d = 100
+	d = 1000
 )
 
 //
@@ -44,7 +46,7 @@ func main() {
 	svc1 := sqs.New(sess)
 
 	// create a session with s3 (use only if s3 signing is used, commented by default)
-	//svc2 := s3.New(sess)
+	svc2 := s3.New(sess)
 
 	for a := 0; a < c; a++ {
 
@@ -63,23 +65,26 @@ func main() {
 				ri := strconv.Itoa(rand.Intn(99))
 
 				s3uri := p + "/" + ri + ".file"
-				log.Println("The S3 URI is", s3uri)
 
 				// if you want to send a signed s3 url instead of the s3 uri, uncomment the following block
-				/*
-					req, _ := svc2.GetObjectRequest(&s3.GetObjectInput{
-						Bucket: aws.String(b),
-						Key:    aws.String(s3uri),
-					})
-					s3uri, err := req.Presign(15 * time.Minute)
+				req, _ := svc2.GetObjectRequest(&s3.GetObjectInput{
+					Bucket: aws.String(buck),
+					Key:    aws.String(s3uri),
+				})
 
-					if err != nil {
-						log.Println("Failed to sign request", err)
-					}
-				*/
+				s3sign, err := req.Presign(15 * time.Minute)
+				log.Println(s3sign)
+
+				if err != nil {
+					log.Println("Failed to sign request", err)
+				}
 
 				// send the message to the sqs queue
-				svc1.SendMessage(&sqs.SendMessageInput{MessageBody: aws.String(s3uri), QueueUrl: aws.String(q)})
+				_, err = svc1.SendMessage(&sqs.SendMessageInput{MessageBody: aws.String(s3sign), QueueUrl: aws.String(q)})
+
+				if err != nil {
+					log.Println(err)
+				}
 			}()
 
 		}

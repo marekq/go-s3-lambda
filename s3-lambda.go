@@ -3,11 +3,9 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"hash/crc32"
 	"io"
 	"log"
-	"net/url"
 	"os"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -27,16 +25,14 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 	}
 
 	for _, msg := range sqsEvent.Records {
-		fmt.Printf("Got SQS message %q with body %q\n", msg.MessageId, msg.Body)
-		fn := url.QueryEscape(msg.Body)
-		log.Printf("Checking " + msg.Body)
-		msgss3(msg.Body, fn)
+		log.Printf("Got SQS message %q with body %q\n", msg.MessageId, msg.Body)
+		msgss3(msg.Body)
 	}
 
 	return nil
 }
 
-func msgss3(s3uri string, fn string) {
+func msgss3(s3uri string) {
 	bucket := os.Getenv("bucket")
 
 	sess, err := session.NewSessionWithOptions(session.Options{
@@ -57,7 +53,7 @@ func msgss3(s3uri string, fn string) {
 	crc := crc32.NewIEEE()
 	io.Copy(crc, out.Body)
 
-	log.Printf("file "+fn+" CRC %d\n", crc.Sum32())
+	log.Printf("file "+s3uri+" CRC %d\n", crc.Sum32())
 }
 
 func main() {
