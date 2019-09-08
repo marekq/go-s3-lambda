@@ -42,7 +42,6 @@ func msgshttp(s3uri string) {
 	crc := crc32.NewIEEE()
 	io.Copy(crc, resp.Body)
 
-	//log.Printf("file "+s3uri+" CRC %d\n", crc.Sum32())
 	fmt.Println(fmt.Sprint(crc.Sum32()) + "     " + s3uri)
 }
 

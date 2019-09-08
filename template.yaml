@@ -26,7 +26,7 @@ Resources:
       CodeUri: .
       Description: ''
       MemorySize: 128
-      Timeout: 30
+      Timeout: 2
       Policies:
         - Version: '2012-10-17'
           Statement:

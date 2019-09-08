@@ -14,6 +14,7 @@ import (
 const (
 	// queue url
 	q = "https://sqs.eu-west-1.amazonaws.com/123456789012/sqs"
+
 	// region
 	r = "eu-west-1"
 
@@ -64,22 +65,9 @@ func main() {
 				s3uri := p + "/" + ri + ".file"
 				log.Println("The S3 URI is", s3uri)
 
-				// if you want to send a signed s3 url instead of the s3 uri, uncomment the following block
-				/*
-					req, _ := svc2.GetObjectRequest(&s3.GetObjectInput{
-						Bucket: aws.String(b),
-						Key:    aws.String(s3uri),
-					})
-					s3uri, err := req.Presign(15 * time.Minute)
-
-					if err != nil {
-						log.Println("Failed to sign request", err)
-					}
-				*/
-
 				// send the message to the sqs queue
 				_, err := svc1.SendMessage(&sqs.SendMessageInput{MessageBody: aws.String(s3uri), QueueUrl: aws.String(q)})
-				//log.Println(n)
+
 				if err != nil {
 					log.Println(err)
 				}
