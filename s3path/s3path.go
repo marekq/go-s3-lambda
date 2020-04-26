@@ -15,10 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 )
 
-const (
-	region = "eu-west-1"
-)
-
 func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 	if len(sqsEvent.Records) == 0 {
 		return errors.New("No SQS message passed to function")
@@ -33,7 +29,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 }
 
 func msgss3(s3uri string) {
-	bucket := os.Getenv("bucket")
+	bucket := os.Getenv("s3bucket")
 
 	sess, err := session.NewSessionWithOptions(session.Options{
 		Config: aws.Config{Region: aws.String("eu-west-1")},
@@ -47,7 +43,7 @@ func msgss3(s3uri string) {
 	})
 
 	if err != nil {
-		log.Printf("error\n")
+		log.Printf("error ", err)
 	}
 
 	crc := crc32.NewIEEE()

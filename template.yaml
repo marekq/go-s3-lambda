@@ -3,28 +3,34 @@ Transform: 'AWS::Serverless-2016-10-31'
 Description: An AWS Serverless Specification template describing your function.
 
 Parameters:
+  # specify an existing S3 bucket with some objects stored
   SourceBucket:
     Type: String
-    Description: Name of the existing source S3 bucket. An IAM role will be automatically created to limit the scope of the Lambda function. 
+    Description: Name of the existing source S3 bucket with files.
     
 Resources:
-  sqs:
+  # option 1 - resources for Go Lambda using the S3 path as input
+  # for this scenario, the Lambda function needs to have IAM access to the bucket
+
+  # queue - create sqs queue
+  S3PathSQS:
     Type: AWS::SQS::Queue
 
-  s3golang:
+  # receiver - create s3 path lambda that receives sqs messages
+  S3PathLambda:
     Type: 'AWS::Serverless::Function'
     Properties:
-      Handler: main
+      CodeUri: s3path/
+      Handler: s3path
       Tracing: Active
       Runtime: go1.x
       Events:
-        MySQSEvent:
+        S3PathEvent:
           Type: SQS
           Properties:
-            Queue: !GetAtt sqs.Arn
+            Queue: !GetAtt S3PathSQS.Arn
             BatchSize: 1
-      CodeUri: .
-      Description: ''
+      Description: 'Lambda function which processes S3 paths submitted over SQS'
       MemorySize: 128
       Timeout: 2
       Policies:
@@ -36,6 +42,87 @@ Resources:
               Resource: !Sub "arn:aws:s3:::${SourceBucket}*"
       Environment:
         Variables:
-          appname: 'go-s3-lambda'
-          awsbucket: 'go-s3-lambda'
-          awsregion: 'eu-west-1'
+          s3bucket: !Ref SourceBucket
+          
+  # sender - create s3 path load generator lambda
+  S3PathLoadgenLambda:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      CodeUri: s3path-loadgen/
+      Handler: s3path-loadgen
+      Tracing: Active
+      Runtime: go1.x
+      Description: 'Lambda function which processes S3 paths submitted over SQS'
+      MemorySize: 512
+      Timeout: 30
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 's3:List*'
+              Resource: !Sub "arn:aws:s3:::${SourceBucket}*"
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 'sqs:SendMessage'
+              Resource: !GetAtt S3PathSQS.Arn
+      Environment:
+        Variables:
+          sqsqueue: !Ref S3PathSQS
+          s3bucket: !Ref SourceBucket
+
+  # option 2 - resources for Go Lambda using a signed S3 URL
+  # for this scenario, the Lambda function needs to IAM access to the bucket, so it may be easier to use cross account
+
+  # queue - create sqs queue
+  SignedUrlSQS:
+    Type: AWS::SQS::Queue
+
+  # receiver - create s3 signed url lambda that receives sqs messages
+  SignedUrlLambda:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      CodeUri: s3signedurl/
+      Handler: s3signedurl
+      Tracing: Active
+      Runtime: go1.x
+      Events:
+        SignedUrlEvent:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt SignedUrlSQS.Arn
+            BatchSize: 1
+      Description: 'Lambda function which processes S3 signed URLs submitted over SQS'
+      MemorySize: 128
+      Timeout: 2
+
+  # sender - create a s3 signed url lambda load generator lambda
+  SignedUrlLoadgenLambda:
+    Type: 'AWS::Serverless::Function'
+    Properties:
+      CodeUri: s3signedurl-loadgen/
+      Handler: s3signedurl-loadgen
+      Tracing: Active
+      Runtime: go1.x
+      Description: 'Lambda function which processes S3 paths submitted over SQS'
+      MemorySize: 512
+      Timeout: 30
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 's3:List*'
+              Resource: !Sub "arn:aws:s3:::${SourceBucket}*"
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 'sqs:SendMessage'
+              Resource: !GetAtt SignedUrlSQS.Arn
+      Environment:
+        Variables:
+          sqsqueue: !Ref SignedUrlSQS
+          s3bucket: !Ref SourceBucket
