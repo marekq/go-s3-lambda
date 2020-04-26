@@ -32,7 +32,7 @@ Resources:
             BatchSize: 10
       Description: 'Lambda function which processes S3 paths submitted over SQS'
       MemorySize: 128
-      Timeout: 2
+      Timeout: 5
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -96,7 +96,7 @@ Resources:
             BatchSize: 10
       Description: 'Lambda function which processes S3 signed URLs submitted over SQS'
       MemorySize: 128
-      Timeout: 2
+      Timeout: 5
 
   # sender - create a s3 signed url lambda load generator lambda
   SignedUrlLoadgenLambda:

@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"sync"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -21,32 +22,10 @@ var (
 	bucket = os.Getenv("s3bucket")
 )
 
-// main handler
-func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
-	// enable context missing logging for xray
-	os.Setenv("AWS_XRAY_CONTEXT_MISSING", "LOG_ERROR")
+func getmsg(s3uri string) {
+	log.Printf("Got SQS message " + s3uri)
 
-	// capture the xray subsegment
-	_, Seg := xray.BeginSubsegment(ctx, "sqs")
-
-	// if no sqs records were received as input, return an error
-	if len(sqsEvent.Records) == 0 {
-		return errors.New("No SQS message passed to function")
-	}
-
-	// print the crc32 hash of every file
-	for _, msg := range sqsEvent.Records {
-		log.Printf("Got SQS message %q with body %q\n", msg.MessageId, msg.Body)
-		msgss3(ctx, msg.Body)
-	}
-
-	// close the xray subsegment
-	Seg.Close(nil)
-	return nil
-}
-
-func msgss3(ctx context.Context, s3uri string) {
-
+	ctx := context.Background()
 	// setup a session with s3 and instrument it with xray
 	sess, _ := session.NewSessionWithOptions(session.Options{})
 
@@ -68,17 +47,49 @@ func msgss3(ctx context.Context, s3uri string) {
 			// calculate the crc32 hash
 			crc := crc32.NewIEEE()
 			io.Copy(crc, out.Body)
-			hash := crc.Sum32()
 
 			// print the crc32 hash
-			log.Printf("file", s3uri, "CRC32", hash)
-			xray.AddMetadata(ctx, "CRC32", hash)
+			log.Printf("file", s3uri, "CRC32 %d\n", crc.Sum32())
+			xray.AddMetadata(ctx, "CRC32", crc.Sum32())
 			xray.AddMetadata(ctx, "Filepath", s3uri)
-
 		}
 
 		return nil
 	})
+}
+
+// main handler
+func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
+	// enable context missing logging for xray
+	os.Setenv("AWS_XRAY_CONTEXT_MISSING", "LOG_ERROR")
+
+	// capture the xray subsegment
+	_, Seg := xray.BeginSubsegment(ctx, "sqs")
+
+	// if no sqs records were received as input, return an error
+	if len(sqsEvent.Records) == 0 {
+		return errors.New("No SQS message passed to function")
+	}
+
+	var wg sync.WaitGroup
+
+	// print the crc32 hash of every file
+	for _, msg := range sqsEvent.Records {
+		wg.Add(1)
+
+		go getmsg(msg.Body)
+		wg.Done()
+
+	}
+
+	wg.Wait()
+
+	Seg.Close(nil)
+	return nil
+}
+
+func msgss3(ctx context.Context, s3uri string) {
+
 }
 
 // start the lambda handler
