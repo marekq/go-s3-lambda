@@ -34,7 +34,7 @@ Roadmap
 - [ ] Add XRay tracing to the processing functions for granular performance tuning.
 - [ ] Add a DynamoDB table where the filename, filesize and filehash are added for tracking of this metadata. 
 - [ ] Add MD5 fingerprinting of files, which is more practical than the current CRC32 code. 
-- [ ] Sensible limits to the Lambda generator functions, i.e. only submit files that were modified in the last 24 hours. Currently the generator can submit up to a 1000 files for processing. 
+- [ ] Sensible limits to the Lambda generator functions, i.e. only submit files that were modified in the last 24 hours. Currently the generator Lambda can submit up to a 1000 files for processing. 
 
 
 Contact

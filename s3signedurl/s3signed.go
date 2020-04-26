@@ -45,8 +45,11 @@ func msgshttp(ctx context.Context, s3uri string) {
 
 		crc := crc32.NewIEEE()
 		io.Copy(crc, resp.Body)
+		hash := crc.Sum32()
 
-		fmt.Println(fmt.Sprint(crc.Sum32()) + "     " + s3uri)
+		fmt.Println(fmt.Sprint(hash) + " " + s3uri)
+		xray.AddMetadata(ctx, "CRC32", hash)
+		xray.AddMetadata(ctx, "Filepath", s3uri)
 		return nil
 
 	})

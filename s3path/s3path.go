@@ -68,9 +68,13 @@ func msgss3(ctx context.Context, s3uri string) {
 			// calculate the crc32 hash
 			crc := crc32.NewIEEE()
 			io.Copy(crc, out.Body)
+			hash := crc.Sum32()
 
 			// print the crc32 hash
-			log.Printf("file "+s3uri+" CRC %d\n", crc.Sum32())
+			log.Printf("file", s3uri, "CRC32", hash)
+			xray.AddMetadata(ctx, "CRC32", hash)
+			xray.AddMetadata(ctx, "Filepath", s3uri)
+
 		}
 
 		return nil
