@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"os"
 	"strconv"
@@ -20,7 +21,7 @@ var (
 	bucket = os.Getenv("s3bucket")
 )
 
-func handler() {
+func handler(ctx context.Context) {
 	log.Println("sending to queue " + sqsqueue)
 
 	// create a session with sqs
@@ -31,9 +32,7 @@ func handler() {
 	sqssvc := sqs.New(sqssess)
 
 	// create a session with s3
-	s3sess, err := session.NewSession(&aws.Config{
-		Region: aws.String("eu-west-1")},
-	)
+	s3sess, err := session.NewSession(&aws.Config{})
 
 	if err != nil {
 		log.Println("Error setting up session with S3 for " + bucket)
@@ -41,14 +40,14 @@ func handler() {
 
 	s3svc := s3.New(s3sess)
 
+	// create a counter
+	count := 0
+
 	// Get a list of items in the s3 bucket
 	resp, err := s3svc.ListObjectsV2(&s3.ListObjectsV2Input{Bucket: aws.String(bucket)})
 	if err != nil {
 		log.Println("Unable to list items in bucket " + bucket)
 	}
-
-	// create a counter
-	count := 0
 
 	for _, item := range resp.Contents {
 
@@ -58,19 +57,24 @@ func handler() {
 		// send the message to the sqs queue
 		_, err := sqssvc.SendMessage(&sqs.SendMessageInput{MessageBody: aws.String(s3uri), QueueUrl: aws.String(sqsqueue)})
 
+		// return whether the message was sent to sqs
 		if err != nil {
 			log.Println("Failed to send message ", err)
+
 		} else {
+
+			// increase the counter by 1
 			count++
 			log.Println(strconv.Itoa(count) + " - " + s3uri + " - " + strconv.FormatInt(s3size, 10))
 		}
+
 	}
 
+	// print amount of objects found in bucket
 	log.Println("found ", len(resp.Contents), " items in bucket ", bucket)
 
 	// print total sent messages
 	log.Println("finished - sent " + strconv.Itoa(count) + " messages")
-
 }
 
 func main() {

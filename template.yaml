@@ -29,7 +29,7 @@ Resources:
           Type: SQS
           Properties:
             Queue: !GetAtt S3PathSQS.Arn
-            BatchSize: 1
+            BatchSize: 10
       Description: 'Lambda function which processes S3 paths submitted over SQS'
       MemorySize: 128
       Timeout: 2
@@ -93,7 +93,7 @@ Resources:
           Type: SQS
           Properties:
             Queue: !GetAtt SignedUrlSQS.Arn
-            BatchSize: 1
+            BatchSize: 10
       Description: 'Lambda function which processes S3 signed URLs submitted over SQS'
       MemorySize: 128
       Timeout: 2

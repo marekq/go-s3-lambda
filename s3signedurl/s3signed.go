@@ -7,44 +7,52 @@ import (
 	"hash/crc32"
 	"io"
 	"log"
-	"net/http"
+	"os"
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-xray-sdk-go/xray"
+	"golang.org/x/net/context/ctxhttp"
 )
 
-const (
-	region = "eu-west-1"
-)
-
+// main handler
 func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
+	os.Setenv("AWS_XRAY_CONTEXT_MISSING", "LOG_ERROR")
+	_, Seg := xray.BeginSubsegment(ctx, "sqs")
+
 	if len(sqsEvent.Records) == 0 {
 		return errors.New("No SQS message passed to function")
 	}
 
 	for _, msg := range sqsEvent.Records {
 		log.Printf("Got SQS message %q with body %q\n", msg.MessageId, msg.Body)
-		msgshttp(msg.Body)
+		msgshttp(ctx, msg.Body)
 	}
 
+	Seg.Close(nil)
 	return nil
 }
 
-func msgshttp(s3uri string) {
-	resp, err := http.Get(s3uri)
-
+func msgshttp(ctx context.Context, s3uri string) {
+	resp, err := ctxhttp.Get(ctx, xray.Client(nil), s3uri)
 	if err != nil {
 		log.Printf("error")
 	}
 
 	defer resp.Body.Close()
 
-	crc := crc32.NewIEEE()
-	io.Copy(crc, resp.Body)
+	xray.Capture(ctx, "SendMsg", func(ctx1 context.Context) error {
 
-	fmt.Println(fmt.Sprint(crc.Sum32()) + "     " + s3uri)
+		crc := crc32.NewIEEE()
+		io.Copy(crc, resp.Body)
+
+		fmt.Println(fmt.Sprint(crc.Sum32()) + "     " + s3uri)
+		return nil
+
+	})
 }
 
+// start the lambda handler
 func main() {
 	lambda.Start(handler)
 }
