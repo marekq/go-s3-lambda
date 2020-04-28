@@ -30,6 +30,7 @@ Resources:
           Properties:
             Queue: !GetAtt S3PathSQS.Arn
             BatchSize: 10
+            MaximumRetryAttempts: 0
       Description: 'Lambda function which processes S3 paths submitted over SQS'
       MemorySize: 128
       Timeout: 5
@@ -60,8 +61,14 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - 's3:List*'
-              Resource: !Sub "arn:aws:s3:::${SourceBucket}*"
+                - 's3:*'
+              Resource: !Sub "arn:aws:s3:::${SourceBucket}"
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 's3:*'
+              Resource: !Sub "arn:aws:s3:::${SourceBucket}/*"
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow
@@ -94,6 +101,7 @@ Resources:
           Properties:
             Queue: !GetAtt SignedUrlSQS.Arn
             BatchSize: 10
+            MaximumRetryAttempts: 0
       Description: 'Lambda function which processes S3 signed URLs submitted over SQS'
       MemorySize: 128
       Timeout: 5
@@ -114,8 +122,14 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - 's3:List*'
-              Resource: !Sub "arn:aws:s3:::${SourceBucket}*"
+                - 's3:*'
+              Resource: !Sub "arn:aws:s3:::${SourceBucket}"
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 's3:*'
+              Resource: !Sub "arn:aws:s3:::${SourceBucket}/*"
         - Version: '2012-10-17'
           Statement:
             - Effect: Allow

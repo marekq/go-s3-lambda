@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/base64"
 	"log"
 	"os"
 	"strconv"
@@ -20,6 +21,9 @@ var (
 
 	// bucket name
 	bucket = os.Getenv("s3bucket")
+
+	// get aws region
+	region = os.Getenv("AWS_REGION")
 )
 
 func handler(ctx context.Context) {
@@ -33,7 +37,7 @@ func handler(ctx context.Context) {
 	sqssvc := sqs.New(sqssess)
 
 	// create a session with s3
-	s3sess, _ := session.NewSession(&aws.Config{})
+	s3sess, _ := session.NewSession(&aws.Config{Region: aws.String(region)})
 
 	s3svc := s3.New(s3sess)
 
@@ -63,32 +67,42 @@ func handler(ctx context.Context) {
 
 			// create a signed s3 url for the object with a 60 minute expiration time
 			s3sign, err := req.Presign(60 * time.Minute)
+			log.Println("s3 signed url - " + s3sign)
 
 			// print an error of the s3 signing failed
 			if err != nil {
 				log.Println("Failed to sign request ", err)
+
 			} else {
 
 				// if s3 signing was successful, send the message to the sqs queue
 				log.Println(s3sign)
-				_, err = sqssvc.SendMessage(&sqs.SendMessageInput{MessageBody: aws.String(s3sign), QueueUrl: aws.String(sqsqueue)})
 
-				// return whether the message was sent to sqs
-				if err != nil {
-					log.Println("Failed to send message ", err)
+				// encode s3 signed url as base64 string
+				encs3sign := base64.StdEncoding.EncodeToString([]byte(s3sign))
+				log.Printf("encoded s3 url - " + encs3sign)
+
+				// send the encoded url to the sqs queue
+				_, err = sqssvc.SendMessage(&sqs.SendMessageInput{MessageBody: aws.String(encs3sign), QueueUrl: aws.String(sqsqueue)})
+
+				// return an error if the message was not sent to sqs
+				if err == nil {
+
+					// increase counter by 1 and print message
+					count++
+					log.Println(strconv.Itoa(count) + " - " + s3uri + " - " + strconv.FormatInt(s3size, 10))
 
 				} else {
 
-					// increase counter by 1
-					count++
-					log.Println(strconv.Itoa(count) + " - " + s3uri + " - " + strconv.FormatInt(s3size, 10))
+					log.Println("Failed to send message ", err)
+
 				}
 			}
 
 		} else {
 
 			// if the filesize was 0 bytes, skip further processing
-			log.Println("Object " + s3uri + " has a filesize of 0 bytes")
+			log.Println("Object " + s3uri + " has a filesize of 0 bytes, skipping...")
 
 		}
 	}
