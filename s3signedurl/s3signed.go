@@ -53,15 +53,18 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 				io.Copy(crc, resp.Body)
 				hash := crc.Sum32()
 
-				fmt.Println(fmt.Sprint(hash) + " " + string(s3urldec))
+				fmt.Println("hash", hash)
+				fmt.Println("url", string(s3urldec))
+
 				xray.AddMetadata(ctx, "CRC32", hash)
 				xray.AddMetadata(ctx, "FileURL", string(s3urldec))
 
 				resp.Body.Close()
-				Seg2.Close(nil)
 				wg.Done()
 
 			}()
+			Seg2.Close(nil)
+
 		}
 		wg.Wait()
 

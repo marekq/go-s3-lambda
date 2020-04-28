@@ -80,7 +80,6 @@ func handler(ctx context.Context) {
 
 				// encode s3 signed url as base64 string
 				encs3sign := base64.StdEncoding.EncodeToString([]byte(s3sign))
-				log.Printf("encoded s3 url - " + encs3sign)
 
 				// send the encoded url to the sqs queue
 				_, err = sqssvc.SendMessage(&sqs.SendMessageInput{MessageBody: aws.String(encs3sign), QueueUrl: aws.String(sqsqueue)})
@@ -90,7 +89,8 @@ func handler(ctx context.Context) {
 
 					// increase counter by 1 and print message
 					count++
-					log.Println(strconv.Itoa(count) + " - " + s3uri + " - " + strconv.FormatInt(s3size, 10))
+					log.Println("count", strconv.Itoa(count))
+					log.Println("size", strconv.FormatInt(s3size, 10))
 
 				} else {
 
