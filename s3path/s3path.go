@@ -75,8 +75,8 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 
 						// print the crc32 hash
 						log.Printf("file", s3uri, "CRC32 %d\n", crc.Sum32())
-						xray.AddMetadata(ctx, "CRC32", crc.Sum32())
-						xray.AddMetadata(ctx, "Filepath", s3uri)
+						xray.AddMetadata(ctx1, "CRC32", crc.Sum32())
+						xray.AddMetadata(ctx1, "Filepath", s3uri)
 
 						// close the xray subsegment
 						Seg2.Close(nil)
