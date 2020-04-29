@@ -74,9 +74,6 @@ func handler(ctx context.Context) {
 
 			} else {
 
-				// if s3 signing was successful, send the message to the sqs queue
-				//log.Println(s3sign)
-
 				// encode s3 signed url as base64 string
 				encs3sign := base64.StdEncoding.EncodeToString([]byte(s3sign))
 
@@ -88,8 +85,7 @@ func handler(ctx context.Context) {
 
 					// increase counter by 1 and print message
 					count++
-					log.Println("count", strconv.Itoa(count))
-					log.Println("size", strconv.FormatInt(s3size, 10))
+					log.Println(strconv.Itoa(count), s3uri, strconv.FormatInt(s3size, 10))
 
 				} else {
 

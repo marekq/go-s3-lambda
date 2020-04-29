@@ -2,7 +2,8 @@ package main
 
 import (
 	"context"
-	"hash/crc32"
+	"crypto/md5"
+	"encoding/hex"
 	"io"
 	"log"
 	"os"
@@ -43,40 +44,46 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 
 		var wg sync.WaitGroup
 
-		// print the crc32 hash of every file
+		// print the md5 hash of every file
 		for _, msg := range sqsEvent.Records {
 			wg.Add(1)
 
 			// retrive the s3uri from the sqs message
 			s3uri := msg.Body
-			log.Printf("Got SQS message " + s3uri)
 
 			// run a go routine to retrieve the s3 file and calculate the hash
 			go func() {
 
-				// capture the s3 get and crc32 calculation with xray
+				// capture the s3 get and md5 calculation with xray
 				xray.Capture(ctx, "SendMsg", func(ctx1 context.Context) error {
-					out, err := svc.GetObjectWithContext(ctx, &s3.GetObjectInput{
+					resp, err := svc.GetObjectWithContext(ctx, &s3.GetObjectInput{
 						Bucket: aws.String(bucket),
 						Key:    aws.String(s3uri),
 					})
 
 					// print error if the file could not be retrieved
 					if err != nil {
-						log.Printf("error ", err)
+						log.Printf("error %s\n", err)
 					} else {
 
-						// instrument the crc32 calculation with xray
-						_, Seg2 := xray.BeginSubsegment(ctx, "CRC32")
+						// instrument the md5 calculation with xray
+						_, Seg2 := xray.BeginSubsegment(ctx, "MD5")
 
-						// calculate the crc32 hash
-						crc := crc32.NewIEEE()
-						io.Copy(crc, out.Body)
+						// calculate the md5 hash
+						h := md5.New()
+						_, err = io.Copy(h, resp.Body)
+						if err != nil {
+							log.Printf("md5.go hash.FileMd5 io copy error %v", err)
+						}
+						md5hash := hex.EncodeToString(h.Sum(nil))
 
-						// print the crc32 hash
-						log.Printf("file", s3uri, "CRC32 %d\n", crc.Sum32())
-						xray.AddMetadata(ctx1, "CRC32", crc.Sum32())
-						xray.AddMetadata(ctx1, "Filepath", s3uri)
+						// print the file and hash output
+						log.Println("file", string(s3uri))
+						log.Println("md5", md5hash)
+
+						// add metadata to xray
+						xray.AddMetadata(ctx, "FileURL", string(s3uri))
+						xray.AddMetadata(ctx, "MD5", md5hash)
 
 						// close the xray subsegment
 						Seg2.Close(nil)

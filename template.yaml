@@ -40,7 +40,7 @@ Resources:
             - Effect: Allow
               Action:
                 - 's3:Get*'
-              Resource: !Sub "arn:aws:s3:::${SourceBucket}"
+              Resource: !Sub "arn:aws:s3:::${SourceBucket}/*"
       Environment:
         Variables:
           s3bucket: !Ref SourceBucket
@@ -53,7 +53,7 @@ Resources:
       Handler: s3path-loadgen
       Tracing: Active
       Runtime: go1.x
-      Description: 'Lambda function which processes S3 paths submitted over SQS'
+      Description: 'Lambda function which generates S3 paths submitted to SQS'
       MemorySize: 512
       Timeout: 30
       Policies:
@@ -61,7 +61,7 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - 's3:*'
+                - 's3:List*'
               Resource: !Sub "arn:aws:s3:::${SourceBucket}"
         - SQSSendMessagePolicy:
             QueueName: !GetAtt S3PathSQS.QueueName
@@ -92,7 +92,7 @@ Resources:
             Queue: !GetAtt SignedUrlSQS.Arn
             BatchSize: 10
             MaximumRetryAttempts: 0
-      Description: 'Lambda function which processes S3 signed URLs submitted over SQS'
+      Description: 'Lambda function which retrieves S3 signed URLs submitted over SQS using a HTTP GET request'
       MemorySize: 128
       Timeout: 5
 
@@ -104,7 +104,7 @@ Resources:
       Handler: s3signedurl-loadgen
       Tracing: Active
       Runtime: go1.x
-      Description: 'Lambda function which processes S3 paths submitted over SQS'
+      Description: 'Lambda function which generates signed S3 URLs and submits them to SQS'
       MemorySize: 512
       Timeout: 30
       Policies:
@@ -112,7 +112,8 @@ Resources:
           Statement:
             - Effect: Allow
               Action:
-                - 's3:*'
+                - 's3:List*'
+                - 's3:Get*'
               Resource: !Sub "arn:aws:s3:::${SourceBucket}"
         - SQSSendMessagePolicy:
             QueueName: !GetAtt SignedUrlSQS.QueueName
