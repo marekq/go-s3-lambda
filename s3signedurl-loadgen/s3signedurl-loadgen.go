@@ -67,7 +67,6 @@ func handler(ctx context.Context) {
 
 			// create a signed s3 url for the object with a 60 minute expiration time
 			s3sign, err := req.Presign(60 * time.Minute)
-			log.Println("s3 signed url - " + s3sign)
 
 			// print an error of the s3 signing failed
 			if err != nil {
@@ -76,7 +75,7 @@ func handler(ctx context.Context) {
 			} else {
 
 				// if s3 signing was successful, send the message to the sqs queue
-				log.Println(s3sign)
+				//log.Println(s3sign)
 
 				// encode s3 signed url as base64 string
 				encs3sign := base64.StdEncoding.EncodeToString([]byte(s3sign))

@@ -40,7 +40,7 @@ Resources:
             - Effect: Allow
               Action:
                 - 's3:Get*'
-              Resource: !Sub "arn:aws:s3:::${SourceBucket}*"
+              Resource: !Sub "arn:aws:s3:::${SourceBucket}"
       Environment:
         Variables:
           s3bucket: !Ref SourceBucket
@@ -63,18 +63,8 @@ Resources:
               Action:
                 - 's3:*'
               Resource: !Sub "arn:aws:s3:::${SourceBucket}"
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - 's3:*'
-              Resource: !Sub "arn:aws:s3:::${SourceBucket}/*"
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - 'sqs:SendMessage'
-              Resource: !GetAtt S3PathSQS.Arn
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt S3PathSQS.QueueName
       Environment:
         Variables:
           sqsqueue: !Ref S3PathSQS
@@ -124,18 +114,8 @@ Resources:
               Action:
                 - 's3:*'
               Resource: !Sub "arn:aws:s3:::${SourceBucket}"
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - 's3:*'
-              Resource: !Sub "arn:aws:s3:::${SourceBucket}/*"
-        - Version: '2012-10-17'
-          Statement:
-            - Effect: Allow
-              Action:
-                - 'sqs:SendMessage'
-              Resource: !GetAtt SignedUrlSQS.Arn
+        - SQSSendMessagePolicy:
+            QueueName: !GetAtt SignedUrlSQS.QueueName
       Environment:
         Variables:
           sqsqueue: !Ref SignedUrlSQS
