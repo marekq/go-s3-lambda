@@ -16,6 +16,22 @@ Resources:
   S3PathSQS:
     Type: AWS::SQS::Queue
 
+  # table - create a dynamodb table to store results
+  S3PathTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: Fileurl
+        AttributeType: S
+      - AttributeName: Md5
+        AttributeType: S
+      KeySchema:
+      - AttributeName: Fileurl
+        KeyType: HASH
+      - AttributeName: Md5
+        KeyType: RANGE  
+      BillingMode: PAY_PER_REQUEST
+
   # receiver - create s3 path lambda that receives sqs messages
   S3PathLambda:
     Type: 'AWS::Serverless::Function'
@@ -32,7 +48,7 @@ Resources:
             BatchSize: 10
             MaximumRetryAttempts: 0
       Description: 'Lambda function which processes S3 paths submitted over SQS'
-      MemorySize: 128
+      MemorySize: 256
       Timeout: 5
       Policies:
         - Version: '2012-10-17'
@@ -41,9 +57,12 @@ Resources:
               Action:
                 - 's3:Get*'
               Resource: !Sub "arn:aws:s3:::${SourceBucket}/*"
+        - DynamoDBCrudPolicy:
+            TableName: !Ref S3PathTable
       Environment:
         Variables:
           s3bucket: !Ref SourceBucket
+          ddbtable: !Ref S3PathTable
           
   # sender - create s3 path load generator lambda
   S3PathLoadgenLambda:
@@ -77,6 +96,22 @@ Resources:
   SignedUrlSQS:
     Type: AWS::SQS::Queue
 
+  # table - create a dynamodb table to store results
+  SignedURLTable:
+    Type: 'AWS::DynamoDB::Table'
+    Properties:
+      AttributeDefinitions:
+      - AttributeName: Fileurl
+        AttributeType: S
+      - AttributeName: Md5
+        AttributeType: S
+      KeySchema:
+      - AttributeName: Fileurl
+        KeyType: HASH
+      - AttributeName: Md5
+        KeyType: RANGE  
+      BillingMode: PAY_PER_REQUEST
+
   # receiver - create s3 signed url lambda that receives sqs messages
   SignedUrlLambda:
     Type: 'AWS::Serverless::Function'
@@ -93,9 +128,15 @@ Resources:
             BatchSize: 10
             MaximumRetryAttempts: 0
       Description: 'Lambda function which retrieves S3 signed URLs submitted over SQS using a HTTP GET request'
-      MemorySize: 128
+      MemorySize: 256
       Timeout: 5
-
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref S3PathTable
+      Environment:
+        Variables:
+          ddbtable: !Ref SignedURLTable
+        
   # sender - create a s3 signed url lambda load generator lambda
   SignedUrlLoadgenLambda:
     Type: 'AWS::Serverless::Function'
