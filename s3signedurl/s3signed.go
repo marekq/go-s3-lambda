@@ -6,10 +6,12 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 
 	"github.com/aws/aws-lambda-go/events"
@@ -61,6 +63,10 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 		// decode base64 message to a string
 		s3urldec, err := base64.StdEncoding.DecodeString(msg.Body)
 
+		// get the s3 filename from the s3 signed url
+		s3tmp := strings.Split(string(s3urldec), "?")[0]
+		s3file := fmt.Sprint((strings.Split(s3tmp, "/")[4:]))
+
 		// print error if base64 could not be decoded
 		if err != nil {
 			log.Println("error decoding base64 message")
@@ -69,9 +75,10 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 		} else {
 
 			// retrieve the file over http in a go routine
-			_, Seg2 := xray.BeginSubsegment(ctx, "http-get")
 
 			go func() {
+
+				_, Seg2 := xray.BeginSubsegment(ctx, "http-get")
 
 				// retrieve the file
 				resp, err := ctxhttp.Get(ctx, xray.Client(nil), string(s3urldec))
@@ -93,12 +100,12 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 				resp.Body.Close()
 
 				// add metadata to xray
-				xray.AddMetadata(ctx, "FileURL", string(s3urldec))
+				xray.AddMetadata(ctx, "FileName", string(s3file))
 				xray.AddMetadata(ctx, "MD5", md5hash)
 
 				// create ddb item struct
 				item := Item{
-					Fileurl:  string(s3urldec),
+					Fileurl:  string(s3file),
 					Md5:      md5hash,
 					Filesize: int(filesizeint),
 				}
@@ -123,16 +130,16 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 					log.Println(err.Error())
 				} else {
 
-					log.Println("done - " + string(s3urldec) + " " + md5hash + " " + filesizestr)
+					log.Println("done - " + string(s3file) + " " + md5hash + " " + filesizestr)
 				}
+
+				// close xray subsegment
+				Seg2.Close(nil)
 
 				// complete the task
 				wg.Done()
 
 			}()
-
-			// close xray subsegment
-			Seg2.Close(nil)
 
 		}
 		wg.Wait()
