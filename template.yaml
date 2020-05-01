@@ -132,7 +132,7 @@ Resources:
       Timeout: 5
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref S3PathTable
+            TableName: !Ref SignedURLTable
       Environment:
         Variables:
           ddbtable: !Ref SignedURLTable
@@ -156,6 +156,13 @@ Resources:
                 - 's3:List*'
                 - 's3:Get*'
               Resource: !Sub "arn:aws:s3:::${SourceBucket}"
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - 's3:List*'
+                - 's3:Get*'
+              Resource: !Sub "arn:aws:s3:::${SourceBucket}/*"
         - SQSSendMessagePolicy:
             QueueName: !GetAtt SignedUrlSQS.QueueName
       Environment:

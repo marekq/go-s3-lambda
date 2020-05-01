@@ -22,7 +22,9 @@ import (
 
 var (
 	// retrieve the s3 bucket name
-	bucket   = os.Getenv("s3bucket")
+	bucket = os.Getenv("s3bucket")
+
+	// retrieve the ddb table name
 	ddbtable = os.Getenv("ddbtable")
 )
 
@@ -96,11 +98,6 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 							log.Printf("md5 error %v", err)
 						}
 						md5hash := hex.EncodeToString(h.Sum(nil))
-
-						// print the file and hash output
-						//log.Println("file", string(s3uri))
-						//log.Println("md5", md5hash)
-						//log.Println("filesize", filesizestr)
 
 						// add metadata to xray
 						xray.AddMetadata(ctx, "fileurl", string(s3uri))
