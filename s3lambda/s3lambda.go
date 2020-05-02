@@ -27,7 +27,7 @@ import (
 
 var (
 	// retrieve the s3 bucket name
-	bucket = os.Getenv("s3bucket")
+	s3bucket = os.Getenv("s3bucket")
 
 	// retrieve the ddb table name
 	ddbtable = os.Getenv("ddbtable")
@@ -102,7 +102,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 					// if the sqs queue contains s3 paths, retrieve over s3
 					if lambdamode == "s3path" {
 						resp, err := svcs3.GetObjectWithContext(ctx1, &s3.GetObjectInput{
-							Bucket: aws.String(bucket),
+							Bucket: aws.String(s3bucket),
 							Key:    aws.String(s3uri),
 						})
 
@@ -169,9 +169,11 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 					}
 
 					// add metadata to xray
-					xray.AddMetadata(ctx1, "fileurl", string(s3uri))
+					xray.AddMetadata(ctx1, "fileurl", s3uri)
 					xray.AddMetadata(ctx1, "md5", md5hash)
 					xray.AddMetadata(ctx1, "filesize", filesizestr)
+
+					log.Println(s3uri, md5hash, filesizestr)
 
 					// dynamodb put segment
 					_, Seg4 := xray.BeginSubsegment(ctx1, "dynamodb-put")
@@ -181,7 +183,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 						Fileurl:  s3uri,
 						Md5:      md5hash,
 						Filesize: int(filesizeint),
-						Bucket:   bucket,
+						Bucket:   s3bucket,
 					}
 
 					// marshal the ddb items
@@ -208,7 +210,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 					} else {
 
 						count++
-						log.Println("done - " + s3uri + " " + md5hash + " " + filesizestr)
+						log.Println(s3uri + " " + md5hash + " " + filesizestr)
 					}
 
 					// complete the task

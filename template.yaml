@@ -76,7 +76,7 @@ Resources:
       Runtime: go1.x
       Description: 'Lambda function which generates S3 paths submitted to SQS'
       MemorySize: 512
-      Timeout: 30
+      Timeout: 180
       Policies:
         - Version: '2012-10-17'
           Statement:
@@ -140,7 +140,7 @@ Resources:
       Environment:
         Variables:
           ddbtable: !Ref SignedURLTable
-          bucket: !Ref SourceBucket
+          s3bucket: !Ref SourceBucket
           lambdamode: "s3signed"
 
   # sender - create a s3 signed url lambda load generator lambda
@@ -153,7 +153,7 @@ Resources:
       Runtime: go1.x
       Description: 'Lambda function which generates signed S3 URLs and submits them to SQS'
       MemorySize: 512
-      Timeout: 30
+      Timeout: 180
       Policies:
         - Version: '2012-10-17'
           Statement:
