@@ -37,6 +37,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 		Fileurl  string
 		Filesize int
 		Md5      string
+		Bucket   string
 	}
 
 	// capture the xray subsegment
@@ -109,6 +110,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 							Fileurl:  s3uri,
 							Md5:      md5hash,
 							Filesize: int(filesizeint),
+							Bucket:   bucket,
 						}
 
 						// marshal the ddb items

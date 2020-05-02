@@ -25,6 +25,9 @@ import (
 )
 
 var (
+	// retrieve the s3 bucket name
+	bucket = os.Getenv("s3bucket")
+
 	// retrieve the ddb table name
 	ddbtable = os.Getenv("ddbtable")
 )
@@ -38,6 +41,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 		Fileurl  string
 		Filesize int
 		Md5      string
+		Bucket   string
 	}
 
 	// if no sqs messages are submitted, exit
@@ -65,7 +69,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 
 		// get the s3 filename from the s3 signed url
 		s3tmp := strings.Split(string(s3urldec), "?")[0]
-		s3file := fmt.Sprint((strings.Split(s3tmp, "/")[4:]))
+		s3file := strings.Trim(fmt.Sprint((strings.Split(s3tmp, "/")[4:])), "[]")
 
 		// print error if base64 could not be decoded
 		if err != nil {
@@ -105,9 +109,10 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 
 				// create ddb item struct
 				item := Item{
-					Fileurl:  string(s3file),
+					Fileurl:  s3file,
 					Md5:      md5hash,
 					Filesize: int(filesizeint),
+					Bucket:   bucket,
 				}
 
 				// marshal the ddb items

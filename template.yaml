@@ -136,6 +136,7 @@ Resources:
       Environment:
         Variables:
           ddbtable: !Ref SignedURLTable
+          bucket: !Ref SourceBucket
         
   # sender - create a s3 signed url lambda load generator lambda
   SignedUrlLoadgenLambda:
