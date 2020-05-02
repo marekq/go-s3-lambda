@@ -78,7 +78,7 @@ func handler(ctx context.Context) {
 				encs3sign := base64.StdEncoding.EncodeToString([]byte(s3sign))
 
 				// send the encoded url to the sqs queue
-				_, err = sqssvc.SendMessage(&sqs.SendMessageInput{MessageBody: aws.String(encs3sign), QueueUrl: aws.String(sqsqueue)})
+				_, err := sqssvc.SendMessage(&sqs.SendMessageInput{MessageGroupId: aws.String(s3uri), MessageDeduplicationId: aws.String(s3uri), MessageBody: aws.String(encs3sign), QueueUrl: aws.String(sqsqueue)})
 
 				// return an error if the message was not sent to sqs
 				if err == nil {

@@ -15,6 +15,9 @@ Resources:
   # queue - create sqs queue
   S3PathSQS:
     Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 5
+      FifoQueue: True
 
   # table - create a dynamodb table to store results
   S3PathTable:
@@ -36,8 +39,8 @@ Resources:
   S3PathLambda:
     Type: 'AWS::Serverless::Function'
     Properties:
-      CodeUri: s3path/
-      Handler: s3path
+      CodeUri: s3lambda/
+      Handler: s3lambda
       Tracing: Active
       Runtime: go1.x
       Events:
@@ -46,7 +49,6 @@ Resources:
           Properties:
             Queue: !GetAtt S3PathSQS.Arn
             BatchSize: 10
-            MaximumRetryAttempts: 0
       Description: 'Lambda function which processes S3 paths submitted over SQS'
       MemorySize: 256
       Timeout: 5
@@ -63,7 +65,8 @@ Resources:
         Variables:
           s3bucket: !Ref SourceBucket
           ddbtable: !Ref S3PathTable
-          
+          lambdamode: "s3path"
+
   # sender - create s3 path load generator lambda
   S3PathLoadgenLambda:
     Type: 'AWS::Serverless::Function'
@@ -95,6 +98,9 @@ Resources:
   # queue - create sqs queue
   SignedUrlSQS:
     Type: AWS::SQS::Queue
+    Properties:
+      DelaySeconds: 5
+      FifoQueue: True
 
   # table - create a dynamodb table to store results
   SignedURLTable:
@@ -116,8 +122,8 @@ Resources:
   SignedUrlLambda:
     Type: 'AWS::Serverless::Function'
     Properties:
-      CodeUri: s3signedurl/
-      Handler: s3signedurl
+      CodeUri: s3lambda/
+      Handler: s3lambda
       Tracing: Active
       Runtime: go1.x
       Events:
@@ -126,7 +132,6 @@ Resources:
           Properties:
             Queue: !GetAtt SignedUrlSQS.Arn
             BatchSize: 10
-            MaximumRetryAttempts: 0
       Description: 'Lambda function which retrieves S3 signed URLs submitted over SQS using a HTTP GET request'
       MemorySize: 256
       Timeout: 5
@@ -137,7 +142,8 @@ Resources:
         Variables:
           ddbtable: !Ref SignedURLTable
           bucket: !Ref SourceBucket
-        
+          lambdamode: "s3signed"
+
   # sender - create a s3 signed url lambda load generator lambda
   SignedUrlLoadgenLambda:
     Type: 'AWS::Serverless::Function'

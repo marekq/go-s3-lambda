@@ -55,7 +55,7 @@ func handler(ctx context.Context) {
 		s3size := *item.Size
 
 		// send the message to the sqs queue
-		_, err := sqssvc.SendMessage(&sqs.SendMessageInput{MessageBody: aws.String(s3uri), QueueUrl: aws.String(sqsqueue)})
+		_, err := sqssvc.SendMessage(&sqs.SendMessageInput{MessageGroupId: aws.String(s3uri), MessageDeduplicationId: aws.String(s3uri), MessageBody: aws.String(s3uri), QueueUrl: aws.String(sqsqueue)})
 
 		// return whether the message was sent to sqs
 		if err != nil {
