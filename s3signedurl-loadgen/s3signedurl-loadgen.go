@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/base64"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -13,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	uuid "github.com/satori/go.uuid"
 )
 
 var (
@@ -78,7 +80,9 @@ func handler(ctx context.Context) {
 				encs3sign := base64.StdEncoding.EncodeToString([]byte(s3sign))
 
 				// send the encoded url to the sqs queue
-				_, err := sqssvc.SendMessage(&sqs.SendMessageInput{MessageGroupId: aws.String(s3uri), MessageDeduplicationId: aws.String(s3uri), MessageBody: aws.String(encs3sign), QueueUrl: aws.String(sqsqueue)})
+				uuid1 := fmt.Sprint(uuid.Must(uuid.NewV4()))
+
+				_, err := sqssvc.SendMessage(&sqs.SendMessageInput{MessageGroupId: aws.String(bucket), MessageDeduplicationId: aws.String(uuid1), MessageBody: aws.String(encs3sign), QueueUrl: aws.String(sqsqueue)})
 
 				// return an error if the message was not sent to sqs
 				if err == nil {

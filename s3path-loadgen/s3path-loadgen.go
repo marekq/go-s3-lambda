@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"strconv"
@@ -11,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	uuid "github.com/satori/go.uuid"
 )
 
 var (
@@ -55,7 +57,8 @@ func handler(ctx context.Context) {
 		s3size := *item.Size
 
 		// send the message to the sqs queue
-		_, err := sqssvc.SendMessage(&sqs.SendMessageInput{MessageGroupId: aws.String(s3uri), MessageDeduplicationId: aws.String(s3uri), MessageBody: aws.String(s3uri), QueueUrl: aws.String(sqsqueue)})
+		uuid1 := fmt.Sprint(uuid.Must(uuid.NewV4()))
+		_, err := sqssvc.SendMessage(&sqs.SendMessageInput{MessageGroupId: aws.String(bucket), MessageDeduplicationId: aws.String(uuid1), MessageBody: aws.String(s3uri), QueueUrl: aws.String(sqsqueue)})
 
 		// return whether the message was sent to sqs
 		if err != nil {

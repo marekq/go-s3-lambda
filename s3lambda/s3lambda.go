@@ -39,7 +39,7 @@ var (
 // main handler
 func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 	// get the unix ts for start time
-	startts := int32(time.Now().Unix())
+	startts := int32(time.Now().UnixNano() / 1000000)
 
 	// set a variable for total file size
 	filesz := 0
@@ -91,8 +91,6 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 			// run a go routine to retrieve the s3 file and calculate the hash
 			go func() {
 
-				_, Seg2 := xray.BeginSubsegment(ctx, "s3-get")
-
 				// capture the s3 get and md5 calculation with xray
 				xray.Capture(ctx, "GetMsg", func(ctx1 context.Context) error {
 
@@ -115,7 +113,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 						filesz += int(filesizeint)
 
 						// instrument the md5 calculation with xray
-						_, Seg3 := xray.BeginSubsegment(ctx1, "calc-md5")
+						_, Seg2 := xray.BeginSubsegment(ctx1, "calc-md5")
 
 						// calculate the md5 hash
 						h := md5.New()
@@ -126,7 +124,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 						}
 
 						md5hash = hex.EncodeToString(h.Sum(nil))
-						Seg3.Close(nil)
+						Seg2.Close(nil)
 
 					} else if lambdamode == "s3signed" {
 						// if the sqs queue contains s3 signed urls
@@ -204,7 +202,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 					// print the success or error message from the put to ddb
 					if err != nil {
 
-						log.Println("Got error calling PutItem:")
+						log.Println("got error calling dynamodb:putitem ")
 						log.Println(err.Error())
 
 					} else {
@@ -220,9 +218,6 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 
 				})
 
-				// set the task as done
-				Seg2.Close(nil)
-
 			}()
 		}
 
@@ -232,10 +227,10 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 	}
 
 	// get the unix ts for end time and total time
-	endts := int32(time.Now().Unix())
+	endts := int32(time.Now().UnixNano() / 1000000)
 	totaltime := fmt.Sprint(endts - startts)
 
-	log.Println("exit - processed " + strconv.Itoa(count) + " messages with " + fmt.Sprint(filesz/1024) + " KB in " + totaltime + " seconds")
+	log.Println("exit - processed " + strconv.Itoa(count) + " messages with " + fmt.Sprint(filesz/1024) + " KB in " + totaltime + " msec")
 	xray.AddMetadata(ctx, "filecount", count)
 	xray.AddMetadata(ctx, "totalfilesize", filesz)
 
