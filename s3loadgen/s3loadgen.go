@@ -26,6 +26,9 @@ var (
 
 	// get aws region
 	region = os.Getenv("AWS_REGION")
+
+	// get lambda mode
+	lambdamode = os.Getenv("lambdamode")
 )
 
 func handler(ctx context.Context) {
@@ -61,41 +64,53 @@ func handler(ctx context.Context) {
 		// check if the object on s3 is bigger than 0 bytes
 		if s3size != 0 {
 
-			// create a signed s3 url for the object
-			req, _ := s3svc.GetObjectRequest(&s3.GetObjectInput{
-				Bucket: aws.String(bucket),
-				Key:    aws.String(s3uri),
-			})
+			s3message := ""
 
-			// create a signed s3 url for the object with a 60 minute expiration time
-			s3sign, err := req.Presign(60 * time.Minute)
+			// if mode is s3signed, create a s3 signed url
+			if lambdamode == "s3signed" {
+				// create a signed s3 url for the object
+				req, _ := s3svc.GetObjectRequest(&s3.GetObjectInput{
+					Bucket: aws.String(bucket),
+					Key:    aws.String(s3uri),
+				})
 
-			// print an error of the s3 signing failed
-			if err != nil {
-				log.Println("Failed to sign request ", err)
+				// create a signed s3 url for the object with a 60 minute expiration time
+				s3sign, err := req.Presign(60 * time.Minute)
 
-			} else {
-
-				// encode s3 signed url as base64 string
-				encs3sign := base64.StdEncoding.EncodeToString([]byte(s3sign))
-
-				// send the encoded url to the sqs queue
-				uuid1 := fmt.Sprint(uuid.Must(uuid.NewV4()))
-
-				_, err := sqssvc.SendMessage(&sqs.SendMessageInput{MessageGroupId: aws.String(bucket), MessageDeduplicationId: aws.String(uuid1), MessageBody: aws.String(encs3sign), QueueUrl: aws.String(sqsqueue)})
-
-				// return an error if the message was not sent to sqs
-				if err == nil {
-
-					// increase counter by 1 and print message
-					count++
-					log.Println(strconv.Itoa(count), s3uri, strconv.FormatInt(s3size, 10))
+				// print an error of the s3 signing failed
+				if err != nil {
+					log.Println("Failed to sign request ", err)
 
 				} else {
 
-					log.Println("Failed to send message ", err)
-
+					// encode s3 signed url as base64 string
+					s3message = base64.StdEncoding.EncodeToString([]byte(s3sign))
 				}
+
+			} else if lambdamode == "s3path" {
+				s3message = s3uri
+
+			} else {
+				log.Println("invalid lambdamode specified, quitting!")
+				os.Exit(1)
+			}
+
+			// generate a unique message uuid and send the encoded url to the sqs queue
+			uuid1 := fmt.Sprint(uuid.NewV4())
+			_, err := sqssvc.SendMessage(&sqs.SendMessageInput{MessageGroupId: aws.String(bucket), MessageDeduplicationId: aws.String(uuid1), MessageBody: aws.String(s3message), QueueUrl: aws.String(sqsqueue)})
+
+			// return an error if the message was not sent to sqs
+			if err == nil {
+
+				// increase counter by 1 and print message
+				count++
+				log.Println(strconv.Itoa(count), s3uri, strconv.FormatInt(s3size, 10))
+
+			} else {
+
+				// print error if message failed to send
+				log.Println("Failed to send message ", err)
+
 			}
 
 		} else {

@@ -143,7 +143,7 @@ func handler(ctx context.Context, sqsEvent events.SQSEvent) error {
 							log.Printf("error %s\n", err)
 						}
 
-						filesizeint := resp.ContentLength
+						filesizeint = resp.ContentLength
 						filesizestr = strconv.FormatInt(filesizeint, 10)
 
 						// add object filesize to total counter

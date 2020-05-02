@@ -70,8 +70,8 @@ Resources:
   S3PathLoadgenLambda:
     Type: 'AWS::Serverless::Function'
     Properties:
-      CodeUri: s3path-loadgen/
-      Handler: s3path-loadgen
+      CodeUri: s3loadgen/
+      Handler: s3loadgen
       Tracing: Active
       Runtime: go1.x
       Description: 'Lambda function which generates S3 paths submitted to SQS'
@@ -90,6 +90,7 @@ Resources:
         Variables:
           sqsqueue: !Ref S3PathSQS
           s3bucket: !Ref SourceBucket
+          lambdamode: "s3path"
 
   # option 2 - resources for Go Lambda using a signed S3 URL
   # for this scenario, the Lambda function needs to IAM access to the bucket, so it may be easier to use cross account
@@ -146,8 +147,8 @@ Resources:
   SignedUrlLoadgenLambda:
     Type: 'AWS::Serverless::Function'
     Properties:
-      CodeUri: s3signedurl-loadgen/
-      Handler: s3signedurl-loadgen
+      CodeUri: s3loadgen/
+      Handler: s3loadgen
       Tracing: Active
       Runtime: go1.x
       Description: 'Lambda function which generates signed S3 URLs and submits them to SQS'
@@ -174,3 +175,4 @@ Resources:
         Variables:
           sqsqueue: !Ref SignedUrlSQS
           s3bucket: !Ref SourceBucket
+          lambdamode: "s3signed"
