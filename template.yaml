@@ -15,8 +15,6 @@ Resources:
   # queue - create sqs queue
   S3PathSQS:
     Type: AWS::SQS::Queue
-    Properties:
-      FifoQueue: True
 
   # table - create a dynamodb table to store results
   S3PathTable:
@@ -98,8 +96,6 @@ Resources:
   # queue - create sqs queue
   SignedUrlSQS:
     Type: AWS::SQS::Queue
-    Properties:
-      FifoQueue: True
 
   # table - create a dynamodb table to store results
   SignedURLTable:

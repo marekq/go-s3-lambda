@@ -13,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/sqs"
-	"github.com/google/uuid"
 )
 
 var (
@@ -92,8 +91,7 @@ func handler(ctx context.Context) {
 					}
 
 					// generate a unique message uuid and send the encoded url to the sqs queue
-					uuid1 := uuid.Must(uuid.NewUUID()).String()
-					_, err := sqssvc.SendMessage(&sqs.SendMessageInput{MessageGroupId: aws.String(bucket), MessageDeduplicationId: aws.String(uuid1), MessageBody: aws.String(s3message), QueueUrl: aws.String(sqsqueue)})
+					_, err := sqssvc.SendMessage(&sqs.SendMessageInput{MessageBody: aws.String(s3message), QueueUrl: aws.String(sqsqueue)})
 
 					// return an error if the message was not sent to sqs
 					if err == nil {
