@@ -50,13 +50,14 @@ func handler(ctx context.Context) {
 	// iterate over the s3 bucket content
 	err := s3svc.ListObjectsPages(&s3.ListObjectsInput{Bucket: aws.String(bucket)},
 		func(p *s3.ListObjectsOutput, last bool) (shouldContinue bool) {
-			bucketcount++
 
 			for _, item := range p.Contents {
 
+				// create variables from s3 metadata, increase bucketcount by one
 				s3uri := *item.Key
 				s3size := *item.Size
 				s3message := ""
+				bucketcount++
 
 				// check if the object on s3 is bigger than 0 bytes
 				if s3size != 0 {
@@ -83,9 +84,12 @@ func handler(ctx context.Context) {
 						}
 
 					} else if lambdamode == "s3path" {
+						// if s3path mode is selected, submit the s3 path to the function
 						s3message = s3uri
 
 					} else {
+
+						// no valid lambda mode was found, quitting
 						log.Println("invalid lambdamode specified, quitting!")
 						os.Exit(1)
 					}
@@ -118,6 +122,7 @@ func handler(ctx context.Context) {
 			return true
 		})
 
+	// if s3 listing encountered an error, print it
 	if err != nil {
 		log.Println(err)
 	}
@@ -130,6 +135,7 @@ func handler(ctx context.Context) {
 
 }
 
+// start the lambda handler
 func main() {
 	lambda.Start(handler)
 }
